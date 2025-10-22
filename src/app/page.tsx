@@ -1,12 +1,22 @@
 "use client";
 
 import Image from "next/image";
+
 import { useEffect, useState } from "react";
 
-export default function Home() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+type User = {
+  bruker_id: number;
+  navn: string;
+  gruppe_id: number;
+};
 
+export default function Home() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [navn, setNavn] = useState("");
+  const [gruppeId, setGruppeId] = useState("");
+
+  // Fetch users on mount
   useEffect(() => {
     async function fetchUsers() {
       try {
@@ -23,14 +33,56 @@ export default function Home() {
     fetchUsers();
   }, []);
 
+  // Add a new user
+  const addUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ navn, gruppe_id: parseInt(gruppeId) }),
+      });
+      if (!res.ok) throw new Error("Failed to add user");
+      const newUser: User = await res.json();
+      setUsers([...users, newUser]);
+      setNavn("");
+      setGruppeId("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (loading) return <p>Loading users...</p>;
 
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">Users</h1>
+
+      <form onSubmit={addUser} className="mb-4 flex gap-2">
+        <input
+          type="text"
+          placeholder="Name"
+          value={navn}
+          onChange={(e) => setNavn(e.target.value)}
+          required
+          className="border p-1"
+        />
+        <input
+          type="number"
+          placeholder="Group ID"
+          value={gruppeId}
+          onChange={(e) => setGruppeId(e.target.value)}
+          required
+          className="border p-1"
+        />
+        <button type="submit" className="bg-blue-500 text-white px-2">
+          Add User
+        </button>
+      </form>
+
       <ul>
-        {users.map((user: any) => (
-          <li key={user.id}>
+        {users.map((user) => (
+          <li key={user.bruker_id}>
             {user.navn} ({user.gruppe_id})
           </li>
         ))}
@@ -38,6 +90,7 @@ export default function Home() {
     </div>
   );
 }
+
 /* 
 
   
