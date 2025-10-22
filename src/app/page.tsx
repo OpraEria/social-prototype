@@ -1,6 +1,48 @@
+"use client";
+
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const res = await fetch("/api/users");
+        if (!res.ok) throw new Error("Network response was not ok");
+        const data = await res.json();
+        setUsers(data);
+      } catch (err: any) {
+        console.error("Failed to fetch users", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchUsers();
+  }, []);
+
+  if (loading) return <p>Loading users...</p>;
+
+  return (
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">Users</h1>
+      <ul>
+        {users.map((user: any) => (
+          <li key={user.id}>
+            {user.navn} ({user.gruppe_id})
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+/* 
+
+  
+
+
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
@@ -15,6 +57,7 @@ export default function Home() {
         <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
           <li className="mb-2 tracking-[-.01em]">
             Get started by editing{" "}
+
             <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
               src/app/page.tsx
             </code>
@@ -100,4 +143,4 @@ export default function Home() {
       </footer>
     </div>
   );
-}
+  */
