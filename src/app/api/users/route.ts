@@ -43,7 +43,6 @@ export async function POST(req: Request) {
       "INSERT INTO bruker (navn, gruppe_id) VALUES ($1, $2) RETURNING *",
       [navn, gruppe_id]
     );
-
     return NextResponse.json(result.rows[0]);
   } catch (err: any) {
     console.error("Failed to add user:", err);
