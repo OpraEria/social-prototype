@@ -71,6 +71,7 @@ export default function Home() {
           type="number"
           placeholder="Group ID"
           value={gruppeId}
+          suppressContentEditableWarning
           onChange={(e) => setGruppeId(e.target.value)}
           required
           className="border p-1"
