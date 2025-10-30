@@ -30,7 +30,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { navn, gruppe_id } = body;
+    const { navn, passord, gruppe_id } = body;
 
     if (!navn || !gruppe_id) {
       return NextResponse.json(
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     }
 
     const result = await pool.query(
-      "INSERT INTO bruker (navn, gruppe_id) VALUES ($1, $2, $3) RETURNING *",
+      "INSERT INTO bruker (navn, passord, gruppe_id) VALUES ($1, $2, $3) RETURNING *",
       [navn, passord, gruppe_id]
     );
     return NextResponse.json(result.rows[0]);
