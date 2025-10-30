@@ -40,8 +40,8 @@ export async function POST(req: Request) {
     }
 
     const result = await pool.query(
-      "INSERT INTO bruker (navn, gruppe_id) VALUES ($1, $2) RETURNING *",
-      [navn, gruppe_id]
+      "INSERT INTO bruker (navn, gruppe_id) VALUES ($1, $2, $3) RETURNING *",
+      [navn, passord, gruppe_id]
     );
     return NextResponse.json(result.rows[0]);
   } catch (err: any) {

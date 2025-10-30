@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 type User = {
   bruker_id: number;
   navn: string;
+  passord: string;
   gruppe_id: number;
 };
 
@@ -14,6 +15,7 @@ export default function Home() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [navn, setNavn] = useState("");
+  const [passord, setPassord] = useState("");
   const [gruppeId, setGruppeId] = useState("");
 
   // Fetch users on mount
@@ -40,12 +42,13 @@ export default function Home() {
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ navn, gruppe_id: parseInt(gruppeId) }),
+        body: JSON.stringify({ navn, passord, gruppe_id: parseInt(gruppeId) }),
       });
       if (!res.ok) throw new Error("Failed to add user");
       const newUser: User = await res.json();
       setUsers([...users, newUser]);
       setNavn("");
+      setPassord("");
       setGruppeId("");
     } catch (err) {
       console.error(err);
@@ -68,6 +71,14 @@ export default function Home() {
           className="border p-1"
         />
         <input
+          type="text"
+          placeholder="Passord"
+          value={passord}
+          onChange={(e) => setPassord(e.target.value)}
+          required
+          className="border p-1"
+        />
+        <input
           type="number"
           placeholder="Group ID"
           value={gruppeId}
@@ -84,7 +95,7 @@ export default function Home() {
       <ul>
         {users.map((user) => (
           <li key={user.bruker_id}>
-            {user.navn} ({user.gruppe_id})
+            {user.navn} {user.passord} ({user.gruppe_id})
           </li>
         ))}
       </ul>
