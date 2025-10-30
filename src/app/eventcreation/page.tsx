@@ -2,11 +2,14 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const CreateEventPage: React.FC = () => {
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,6 +23,10 @@ const CreateEventPage: React.FC = () => {
       setMessage("Eventet ble lagret!");
       setTitle(""); // Tøm feltet etter lagring
       setDescription(""); // Tøm feltet etter lagring
+
+      setTimeout(() => {
+        router.push("/event_list");
+      }, 500); // Vent 0.5 sekunder før navigering
     } catch (error) {
       console.error("Feil ved lagring av event:", error);
       setMessage("Kunne ikke lagre eventet. Prøv igjen.");
