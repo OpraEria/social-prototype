@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -16,29 +17,33 @@ export default function Home() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [navn, setNavn] = useState("");
   const [passord, setPassord] = useState("");
   const [gruppeId, setGruppeId] = useState("");
 
-  // Check authentication and redirect if not logged in
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
+    if (status === 'unauthenticated') {
+      router.push('/login');
     }
   }, [status, router]);
 
   // Fetch users on mount
   useEffect(() => {
-    if (status !== "authenticated") return;
-
     async function fetchUsers() {
       try {
+        setLoading(true);
+        setError(null);
         const res = await fetch("/api/users");
-        if (!res.ok) throw new Error("Network response was not ok");
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to fetch users");
+        }
         const data = await res.json();
         setUsers(data);
       } catch (err: any) {
         console.error("Failed to fetch users", err);
+        setError(err.message || "Failed to load users");
       } finally {
         setLoading(false);
       }
@@ -66,68 +71,55 @@ export default function Home() {
     }
   };
 
-  if (loading) return <p className="text-center text-gray-600 dark:text-gray-300">Laster brukere...</p>;
+  if (status === 'loading' || loading) return <p>Loading...</p>;
+  if (status === 'unauthenticated') return null;
+  if (error) return <p className="text-red-500">Error: {error}</p>;
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">Brukere</h1>
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">Users</h1>
 
-      <form onSubmit={addUser} className="mb-8 space-y-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Legg til ny bruker</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Navn</label>
-            <input
-              type="text"
-              placeholder="Skriv navn"
-              value={navn}
-              onChange={(e) => setNavn(e.target.value)}
-              required
-              className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Passord</label>
-            <input
-              type="password"
-              placeholder="Skriv passord"
-              value={passord}
-              onChange={(e) => setPassord(e.target.value)}
-              required
-              className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Gruppe ID</label>
-            <input
-              type="number"
-              placeholder="Velg gruppe"
-              value={gruppeId}
-              onChange={(e) => setGruppeId(e.target.value)}
-              required
-              className="w-full p-2 border rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
-            />
-          </div>
-        </div>
-        <button type="submit" className="mt-4 w-full md:w-auto px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600">
-          Legg til bruker
+      <form onSubmit={addUser} className="mb-4 flex gap-2">
+        <input
+          type="text"
+          placeholder="Name"
+          value={navn}
+          onChange={(e) => setNavn(e.target.value)}
+          required
+          className="border p-1"
+        />
+        <input
+          type="text"
+          placeholder="Passord"
+          value={passord}
+          onChange={(e) => setPassord(e.target.value)}
+          required
+          className="border p-1"
+        />
+        <input
+          type="number"
+          placeholder="Group ID"
+          value={gruppeId}
+          suppressContentEditableWarning
+          onChange={(e) => setGruppeId(e.target.value)}
+          required
+          className="border p-1"
+        />
+        <button type="submit" className="bg-blue-500 text-white px-2">
+          Add User
         </button>
       </form>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">Brukerliste</h2>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {users.map((user) => (
-            <div key={user.bruker_id} className="py-3 flex justify-between items-center text-gray-700 dark:text-gray-300">
-              <span className="font-medium">{user.navn}</span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">Gruppe: {user.gruppe_id}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <ul>
+        {users.map((user) => (
+          <li key={user.bruker_id}>
+            {user.navn} {user.passord} ({user.gruppe_id})
+          </li>
+        ))}
+      </ul>
     </div>
-  )
-};
+  );
+}
 
 /* 
 

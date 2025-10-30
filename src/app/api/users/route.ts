@@ -15,14 +15,28 @@ export async function DELETE(req: Request) {}
 
 import pool from "../../../../db.js";
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../auth/[...nextauth]/route";
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
-    const result = await pool.query("SELECT * FROM bruker");
-    return NextResponse.json(result.rows);
+    const client = await pool.connect();
+    try {
+      const result = await client.query("SELECT * FROM bruker");
+      return NextResponse.json(result.rows);
+    } finally {
+      client.release();
+    }
   } catch (err: any) {
     console.error("Error fetching users:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Failed to connect to database. Please check your database configuration." 
+    }, { status: 500 });
   }
 }
 

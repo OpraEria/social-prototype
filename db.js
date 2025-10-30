@@ -6,13 +6,9 @@ dotenv.config();
 const { Pool } = pg;
 
 const pool = new Pool({
-  host: process.env.PGHOST,
-  user: process.env.PGUSER,
-  database: process.env.PGDATABASE,
-  port: process.env.PGPORT,
-  password: process.env.PGPASSWORD,
+  connectionString: process.env.POSTGRES_URL,
   ssl: {
-    rejectUnauthorized: false,
+    rejectUnauthorized: false
   },
 });
 
