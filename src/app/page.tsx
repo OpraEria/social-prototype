@@ -1,6 +1,113 @@
+"use client";
+
 import Image from "next/image";
 
+import { useEffect, useState } from "react";
+
+type User = {
+  bruker_id: number;
+  navn: string;
+  passord: string;
+  gruppe_id: number;
+};
+
 export default function Home() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [navn, setNavn] = useState("");
+  const [passord, setPassord] = useState("");
+  const [gruppeId, setGruppeId] = useState("");
+
+  // Fetch users on mount
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const res = await fetch("/api/users");
+        if (!res.ok) throw new Error("Network response was not ok");
+        const data = await res.json();
+        setUsers(data);
+      } catch (err: any) {
+        console.error("Failed to fetch users", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchUsers();
+  }, []);
+
+  // Add a new user
+  const addUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ navn, passord, gruppe_id: parseInt(gruppeId) }),
+      });
+      if (!res.ok) throw new Error("Failed to add user");
+      const newUser: User = await res.json();
+      setUsers([...users, newUser]);
+      setNavn("");
+      setPassord("");
+      setGruppeId("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (loading) return <p>Loading users...</p>;
+
+  return (
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-4">Users</h1>
+
+      <form onSubmit={addUser} className="mb-4 flex gap-2">
+        <input
+          type="text"
+          placeholder="Name"
+          value={navn}
+          onChange={(e) => setNavn(e.target.value)}
+          required
+          className="border p-1"
+        />
+        <input
+          type="text"
+          placeholder="Passord"
+          value={passord}
+          onChange={(e) => setPassord(e.target.value)}
+          required
+          className="border p-1"
+        />
+        <input
+          type="number"
+          placeholder="Group ID"
+          value={gruppeId}
+          suppressContentEditableWarning
+          onChange={(e) => setGruppeId(e.target.value)}
+          required
+          className="border p-1"
+        />
+        <button type="submit" className="bg-blue-500 text-white px-2">
+          Add User
+        </button>
+      </form>
+
+      <ul>
+        {users.map((user) => (
+          <li key={user.bruker_id}>
+            {user.navn} {user.passord} ({user.gruppe_id})
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/* 
+
+  
+
+
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
@@ -15,6 +122,7 @@ export default function Home() {
         <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
           <li className="mb-2 tracking-[-.01em]">
             Get started by editing{" "}
+
             <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
               src/app/page.tsx
             </code>
@@ -100,4 +208,4 @@ export default function Home() {
       </footer>
     </div>
   );
-}
+  */
