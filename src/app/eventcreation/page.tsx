@@ -84,7 +84,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   heading: {
     textAlign: "center",
-    color: "#333",
+    color: "#000000ff",
     marginBottom: "30px",
     fontSize: "2em",
   },
@@ -100,7 +100,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   label: {
     marginBottom: "8px",
     fontWeight: "bold",
-    color: "#555",
+    color: "#000000ff",
   },
   input: {
     padding: "12px",
