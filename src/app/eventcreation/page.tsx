@@ -1,5 +1,5 @@
 // app/eventcreation/page.tsx
-"use client"; // Dette er viktig for å bruke React Hooks i en Next.js App Router-komponent
+"use client";
 
 import React, { useState } from "react";
 
@@ -13,17 +13,9 @@ const CreateEventPage: React.FC = () => {
     setMessage("Lagrer event...");
 
     try {
-      // Her ville du normalt sendt data til API-ruten din (f.eks. /api/eventcreation)
-      // For nå simulerer vi en API-kall
       console.log("Sender event:", { title, description });
 
-      // Simulerer en forsinkelse for å vise "Lagrer event..."
       await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // I en ekte applikasjon ville du håndtert responsen fra API-et
-      // For eksempel: const response = await fetch('/api/eventcreation', { ... });
-      //              const data = await response.json();
-      //              if (response.ok) { ... } else { ... }
 
       setMessage("Eventet ble lagret!");
       setTitle(""); // Tøm feltet etter lagring
