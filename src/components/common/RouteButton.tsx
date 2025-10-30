@@ -1,21 +1,24 @@
-"use client"; // denne må være client component hvis du vil bruke onClick etc.
+"use client";
+import { useRouter } from "next/navigation";
 import React from "react";
 
 type ButtonProps = {
   label: string;
-  onClick?: () => void;
+  to: string;
 };
 
-export default function Button({ label, onClick }: ButtonProps) {
+export default function Button({ label, to }: ButtonProps) {
+  const router = useRouter();
+
   return (
     <button
-      onClick={onClick}
+      onClick={() => router.push(to)}
       style={{
-        padding: "0.5rem 1rem",
+        padding: "0.6rem 1.2rem",
         borderRadius: "6px",
-        border: "none",
         background: "#0070f3",
         color: "white",
+        border: "none",
         cursor: "pointer",
       }}
     >

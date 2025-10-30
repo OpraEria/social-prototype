@@ -4,6 +4,8 @@ import Image from "next/image";
 
 import { useEffect, useState } from "react";
 
+import RouteButton from "@/components/common/RouteButton";
+
 type User = {
   bruker_id: number;
   navn: string;
@@ -99,6 +101,10 @@ export default function Home() {
           </li>
         ))}
       </ul>
+
+      <div>
+        <RouteButton label="Gå til eventliste" to="/event_list" />
+      </div>
     </div>
   );
 }
