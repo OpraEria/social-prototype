@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import RouteButton from "@/components/common/RouteButton";
+import { query } from "@/lib/db";
 
 type EventRow = {
   event_id: number | string;
@@ -13,23 +14,15 @@ type EventRow = {
 
 async function fetchEvents(): Promise<{ events: EventRow[]; error?: string }> {
   try {
-    // 🔹 Henter data fra ditt API-endepunkt
-    const res = await fetch("/api/events", { cache: "no-store" });
+    // Fetch directly from database in server component
+    const result = await query(
+      `SELECT event_id, tittel, beskrivelse, lokasjon, tid, host_id
+       FROM arrangement
+       ORDER BY tid DESC
+       LIMIT 200`
+    );
 
-    if (!res.ok) {
-      const msg = `Feil fra server (${res.status})`;
-      console.error(msg);
-      return { events: [], error: msg };
-    }
-
-    const data = await res.json();
-
-    // Hvis API-et returnerte en feilmelding
-    if (data?.error) {
-      return { events: [], error: data.error };
-    }
-
-    return { events: data };
+    return { events: result.rows };
   } catch (err: any) {
     console.error("❌ Klarte ikke hente events:", err);
     return { events: [], error: "Får ikke kontakt med serveren" };
@@ -95,6 +88,11 @@ export default async function Page() {
                     {formatDate(ev.tid)}
                   </time>
                 </div>
+                {ev.lokasjon && (
+                  <p style={{ marginTop: 4, color: "#666", fontSize: 14 }}>
+                    📍 {ev.lokasjon}
+                  </p>
+                )}
                 {ev.beskrivelse ? (
                   <p style={{ marginTop: 8, color: "#333" }}>
                     {ev.beskrivelse.length > 200
@@ -108,8 +106,9 @@ export default async function Page() {
         </ul>
       )}
 
-      <div style={{ marginTop: 24 }}>
-        <RouteButton label="Gå tilbake til users" to="/" />
+      <div style={{ marginTop: 24, display: "flex", gap: 12 }}>
+        <RouteButton label="Opprett nytt event" to="/eventcreation" />
+        <RouteButton label="Gå tilbake" to="/" />
       </div>
     </main>
   );

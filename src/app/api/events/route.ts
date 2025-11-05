@@ -6,7 +6,6 @@ export async function GET() {
     const result = await pool.query(
       `SELECT event_id, tittel, beskrivelse, lokasjon, tid, host_id
        FROM arrangement
-	   WHERE host_id = 1
        ORDER BY tid DESC
        LIMIT 200`
     );
