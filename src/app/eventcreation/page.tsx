@@ -3,35 +3,92 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const CreateEventPage: React.FC = () => {
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [location, setLocation] = useState<string>("");
+  const [dateTime, setDateTime] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (status === "loading") {
+      setMessage("Vennligst vent...");
+      return;
+    }
+
+    if (!session?.user?.id) {
+      setMessage("Du må være logget inn for å opprette et event.");
+      return;
+    }
+
+    setIsLoading(true);
     setMessage("Lagrer event...");
 
     try {
-      console.log("Sender event:", { title, description });
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tittel: title,
+          beskrivelse: description,
+          lokasjon: location,
+          tid: dateTime,
+          host_id: parseInt(session.user.id),
+        }),
+      });
 
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Kunne ikke lagre eventet");
+      }
+
+      const data = await response.json();
+      console.log("Event opprettet:", data);
 
       setMessage("Eventet ble lagret!");
-      setTitle(""); // Tøm feltet etter lagring
-      setDescription(""); // Tøm feltet etter lagring
+      setTitle("");
+      setDescription("");
+      setLocation("");
+      setDateTime("");
 
       setTimeout(() => {
         router.push("/event_list");
-      }, 500); // Vent 0.5 sekunder før navigering
-    } catch (error) {
+      }, 500);
+    } catch (error: any) {
       console.error("Feil ved lagring av event:", error);
-      setMessage("Kunne ikke lagre eventet. Prøv igjen.");
+      setMessage(error.message || "Kunne ikke lagre eventet. Prøv igjen.");
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (status === "loading") {
+    return <div style={styles.container}>Laster...</div>;
+  }
+
+  if (!session) {
+    return (
+      <div style={styles.container}>
+        <h1 style={styles.heading}>Du må være logget inn</h1>
+        <button
+          onClick={() => router.push("/login")}
+          style={styles.button}
+        >
+          Gå til innlogging
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
@@ -47,6 +104,7 @@ const CreateEventPage: React.FC = () => {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
+            disabled={isLoading}
             style={styles.input}
           />
         </div>
@@ -60,11 +118,40 @@ const CreateEventPage: React.FC = () => {
             onChange={(e) => setDescription(e.target.value)}
             required
             rows={5}
+            disabled={isLoading}
             style={styles.textarea}
           ></textarea>
         </div>
-        <button type="submit" style={styles.button}>
-          Lagre event
+        <div style={styles.formGroup}>
+          <label htmlFor="location" style={styles.label}>
+            Lokasjon:
+          </label>
+          <input
+            type="text"
+            id="location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            required
+            disabled={isLoading}
+            style={styles.input}
+          />
+        </div>
+        <div style={styles.formGroup}>
+          <label htmlFor="dateTime" style={styles.label}>
+            Dato og tid:
+          </label>
+          <input
+            type="datetime-local"
+            id="dateTime"
+            value={dateTime}
+            onChange={(e) => setDateTime(e.target.value)}
+            required
+            disabled={isLoading}
+            style={styles.input}
+          />
+        </div>
+        <button type="submit" style={styles.button} disabled={isLoading}>
+          {isLoading ? "Lagrer..." : "Lagre event"}
         </button>
       </form>
       {message && <p style={styles.message}>{message}</p>}
