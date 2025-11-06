@@ -17,6 +17,19 @@ export default function NotificationTestPage() {
         setStatus(`Current permission: ${perm}`);
     };
 
+    const updateServiceWorker = async () => {
+        setStatus("Updating service worker...");
+        try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+                await registration.unregister();
+            }
+            setStatus("Service worker unregistered. Refresh the page to re-register.");
+        } catch (error) {
+            setStatus(`Error: ${error}`);
+        }
+    };
+
     const requestPermission = async () => {
         if (!session?.user?.id) {
             setStatus("Please log in first");
@@ -66,6 +79,10 @@ export default function NotificationTestPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
+                            <Button onClick={updateServiceWorker} variant="destructive" className="w-full">
+                                🔄 Update Service Worker (Unregister)
+                            </Button>
+
                             <Button onClick={checkPermission} variant="outline" className="w-full">
                                 Check Permission Status
                             </Button>

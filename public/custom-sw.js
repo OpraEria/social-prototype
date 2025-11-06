@@ -3,24 +3,45 @@ self.addEventListener("push", function (event) {
   console.log("Push notification received", event);
 
   if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.body || "Nytt event publisert!",
-      icon: "/icon-192x192.png",
-      badge: "/icon-192x192.png",
-      vibrate: [200, 100, 200],
-      tag: data.tag || "event-notification",
-      data: {
-        url: data.url || "/",
-        eventId: data.eventId,
-      },
-    };
+    try {
+      const data = event.data.json();
+      console.log("Parsed notification data:", data);
 
-    event.waitUntil(
-      self.registration.showNotification(data.title || "Gather", options)
-    );
+      const options = {
+        body: data.body || "Nytt event publisert!",
+        icon: "/icon-192x192.png",
+        badge: "/icon-192x192.png",
+        vibrate: [200, 100, 200],
+        tag: data.tag || "event-notification",
+        data: {
+          url: data.url || "/",
+          eventId: data.eventId,
+        },
+      };
 
-    console.log("Push notification SHOWN");
+      console.log("About to show notification with options:", options);
+
+      event.waitUntil(
+        self.registration.showNotification(data.title || "Gather", options)
+          .then(() => {
+            console.log("✅ Notification shown successfully!");
+          })
+          .catch((error) => {
+            console.error("❌ Failed to show notification:", error);
+          })
+      );
+    } catch (error) {
+      console.error("❌ Error parsing push data:", error);
+      console.log("Raw push data:", event.data.text());
+
+      // Show a fallback notification
+      event.waitUntil(
+        self.registration.showNotification("Gather", {
+          body: "Du har en ny notifikasjon",
+          icon: "/icon-192x192.png",
+        })
+      );
+    }
   }
 });
 

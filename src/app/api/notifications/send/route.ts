@@ -49,8 +49,8 @@ export async function POST(req: Request) {
       });
     }
 
-    // Prepare notification payload
-    const notificationPayload = JSON.stringify({
+    // Prepare notification payload (web-push will stringify it, so pass object directly)
+    const notificationPayload = {
       title: title || 'Nytt event!',
       body: body || 'Et nytt event har blitt publisert',
       icon: '/icon-192x192.png',
@@ -58,14 +58,14 @@ export async function POST(req: Request) {
       url: eventId ? `/event/${eventId}` : '/',
       eventId,
       tag: 'event-notification'
-    });
+    };
 
     // Send notifications to all subscribers
     const sendPromises = usersResult.rows.map(async (row) => {
       try {
         // subscription_data is already a JSONB object, no need to parse
         const subscription = row.subscription_data;
-        await webpush.sendNotification(subscription, notificationPayload);
+        await webpush.sendNotification(subscription, JSON.stringify(notificationPayload));
         return { success: true };
       } catch (error) {
         console.error('Failed to send notification:', error);
