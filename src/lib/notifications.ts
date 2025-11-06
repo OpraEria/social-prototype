@@ -48,8 +48,17 @@ export const subscribeToPushNotifications = async (userId: string): Promise<Push
     }
 
     // Register service worker
-    const registration = await navigator.serviceWorker.register('/custom-sw.js');
-    await navigator.serviceWorker.ready;
+    let registration;
+    try {
+      registration = await navigator.serviceWorker.register('/custom-sw.js', {
+        scope: '/'
+      });
+      await navigator.serviceWorker.ready;
+      console.log('Service Worker registered successfully');
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+      return null;
+    }
 
     // Get VAPID public key
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -58,26 +67,42 @@ export const subscribeToPushNotifications = async (userId: string): Promise<Push
       return null;
     }
 
+    // Check if already subscribed
+    const existingSubscription = await registration.pushManager.getSubscription();
+    if (existingSubscription) {
+      console.log('Already subscribed, using existing subscription');
+      return existingSubscription;
+    }
+
     // Subscribe to push notifications
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource
-    });
+    try {
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as BufferSource
+      });
 
-    // Send subscription to backend
-    await fetch('/api/notifications/subscribe', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        subscription,
-        userId
-      })
-    });
+      // Send subscription to backend
+      const response = await fetch('/api/notifications/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subscription,
+          userId
+        })
+      });
 
-    console.log('Successfully subscribed to push notifications');
-    return subscription;
+      if (!response.ok) {
+        throw new Error('Failed to save subscription to server');
+      }
+
+      console.log('Successfully subscribed to push notifications');
+      return subscription;
+    } catch (error) {
+      console.error('Push subscription failed:', error);
+      return null;
+    }
   } catch (error) {
     console.error('Failed to subscribe to push notifications:', error);
     return null;

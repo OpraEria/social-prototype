@@ -34,6 +34,15 @@ export async function GET() {
 // POST: Add a new event
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user?.id || !session?.user?.gruppeId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
     const { tittel, beskrivelse, lokasjon, tid, host_id, latitude, longitude } = body;
 
@@ -64,7 +73,9 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           title: 'Nytt event!',
           body: `${tittel} - Sjekk det ut!`,
-          eventId: newEvent.event_id
+          eventId: newEvent.event_id,
+          userId: session.user.id,
+          gruppeId: session.user.gruppeId
         })
       });
     } catch (notifErr) {

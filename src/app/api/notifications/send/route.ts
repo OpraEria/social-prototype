@@ -19,17 +19,19 @@ if (vapidPublicKey && vapidPrivateKey) {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
+    const requestBody = await req.json();
+    const { title, body, eventId, userId: bodyUserId, gruppeId: bodyGruppeId } = requestBody;
     
-    if (!session?.user?.id || !session?.user?.gruppeId) {
+    // Support both session-based (client) and body-based (server) authentication
+    const currentUserId = bodyUserId ? parseInt(bodyUserId) : (session?.user?.id ? parseInt(session.user.id) : null);
+    const gruppeId = bodyGruppeId || session?.user?.gruppeId;
+    
+    if (!currentUserId || !gruppeId) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized or missing user/group information' },
         { status: 401 }
       );
     }
-
-    const { title, body, eventId } = await req.json();
-    const currentUserId = parseInt(session.user.id);
-    const gruppeId = session.user.gruppeId;
 
     // Get all users in the same group (excluding the current user)
     const usersResult = await pool.query(
@@ -61,7 +63,8 @@ export async function POST(req: Request) {
     // Send notifications to all subscribers
     const sendPromises = usersResult.rows.map(async (row) => {
       try {
-        const subscription = JSON.parse(row.subscription_data);
+        // subscription_data is already a JSONB object, no need to parse
+        const subscription = row.subscription_data;
         await webpush.sendNotification(subscription, notificationPayload);
         return { success: true };
       } catch (error) {

@@ -12,7 +12,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Sosial App",
   description: "En sosial plattform for arrangementer",
-  themeColor: "#fafafa",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -27,6 +26,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#fafafa",
 };
 
 export default function RootLayout({
