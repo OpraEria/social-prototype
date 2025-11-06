@@ -4,12 +4,25 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Calendar, MapPin, FileText } from "lucide-react";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+
+const LocationPicker = dynamic(
+  () => import("@/components/LocationPicker"),
+  { ssr: false }
+);
 
 const CreateEventPage: React.FC = () => {
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
-  const [location, setLocation] = useState<string>("");
   const [dateTime, setDateTime] = useState<string>("");
+  const [latitude, setLatitude] = useState<string>("");
+  const [longitude, setLongitude] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -41,9 +54,10 @@ const CreateEventPage: React.FC = () => {
         body: JSON.stringify({
           tittel: title,
           beskrivelse: description,
-          lokasjon: location,
           tid: dateTime,
           host_id: parseInt(session.user.id),
+          latitude: latitude ? parseFloat(latitude) : null,
+          longitude: longitude ? parseFloat(longitude) : null,
         }),
       });
 
@@ -58,11 +72,12 @@ const CreateEventPage: React.FC = () => {
       setMessage("Eventet ble lagret!");
       setTitle("");
       setDescription("");
-      setLocation("");
       setDateTime("");
+      setLatitude("");
+      setLongitude("");
 
       setTimeout(() => {
-        router.push("/event_list");
+        router.push("/");
       }, 500);
     } catch (error: any) {
       console.error("Feil ved lagring av event:", error);
@@ -73,161 +88,173 @@ const CreateEventPage: React.FC = () => {
   };
 
   if (status === "loading") {
-    return <div style={styles.container}>Laster...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-muted-foreground">Laster...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (!session) {
     return (
-      <div style={styles.container}>
-        <h1 style={styles.heading}>Du må være logget inn</h1>
-        <button
-          onClick={() => router.push("/login")}
-          style={styles.button}
-        >
-          Gå til innlogging
-        </button>
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle>Du må være logget inn</CardTitle>
+            <CardDescription>For å opprette et event må du først logge inn</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/login">
+              <Button className="w-full">Gå til innlogging</Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.heading}>Opprett nytt event</h1>
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <div style={styles.formGroup}>
-          <label htmlFor="title" style={styles.label}>
-            Tittel:
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            disabled={isLoading}
-            style={styles.input}
-          />
-        </div>
-        <div style={styles.formGroup}>
-          <label htmlFor="description" style={styles.label}>
-            Beskrivelse:
-          </label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            rows={5}
-            disabled={isLoading}
-            style={styles.textarea}
-          ></textarea>
-        </div>
-        <div style={styles.formGroup}>
-          <label htmlFor="location" style={styles.label}>
-            Lokasjon:
-          </label>
-          <input
-            type="text"
-            id="location"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            required
-            disabled={isLoading}
-            style={styles.input}
-          />
-        </div>
-        <div style={styles.formGroup}>
-          <label htmlFor="dateTime" style={styles.label}>
-            Dato og tid:
-          </label>
-          <input
-            type="datetime-local"
-            id="dateTime"
-            value={dateTime}
-            onChange={(e) => setDateTime(e.target.value)}
-            required
-            disabled={isLoading}
-            style={styles.input}
-          />
-        </div>
-        <button type="submit" style={styles.button} disabled={isLoading}>
-          {isLoading ? "Lagrer..." : "Lagre event"}
-        </button>
-      </form>
-      {message && <p style={styles.message}>{message}</p>}
+    <div className="min-h-screen">
+      <div className="max-w-2xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <Link href="/">
+          <Button variant="ghost" className="mb-6 gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Tilbake til events
+          </Button>
+        </Link>
+
+        <Card className="shadow-xl  rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-br from-gray-50 to-white">
+            <CardTitle className="text-3xl text-gray-900">Opprett nytt event</CardTitle>
+            {/* <CardDescription className="text-gray-600">Fyll ut informasjonen om ditt arrangement</CardDescription> */}
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <label htmlFor="title" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Tittel
+                </label>
+                <Input
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  placeholder=""
+                  className="text-base"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="description" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Beskrivelse
+                </label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  required
+                  rows={5}
+                  disabled={isLoading}
+                  placeholder=""
+                  className="text-base"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="dateTime" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Dato og tid
+                </label>
+                <Input
+                  type="datetime-local"
+                  id="dateTime"
+                  value={dateTime}
+                  onChange={(e) => setDateTime(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="text-base"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="latitude" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Latitude
+                  </label>
+                  <Input
+                    type="number"
+                    step="any"
+                    id="latitude"
+                    value={latitude}
+                    onChange={(e) => setLatitude(e.target.value)}
+                    disabled={isLoading}
+                    placeholder="59.9139"
+                    className="text-base"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="longitude" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Longitude
+                  </label>
+                  <Input
+                    type="number"
+                    step="any"
+                    id="longitude"
+                    value={longitude}
+                    onChange={(e) => setLongitude(e.target.value)}
+                    disabled={isLoading}
+                    placeholder="10.7522"
+                    className="text-base"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Velg lokasjon på kartet
+                </label>
+                {/* <p className="text-xs text-muted-foreground mb-3">
+                  Klikk på kartet eller dra på markøren for å velge lokasjon
+                </p> */}
+                <LocationPicker
+                  latitude={latitude}
+                  longitude={longitude}
+                  onLocationChange={(lat, lng) => {
+                    setLatitude(lat.toFixed(6));
+                    setLongitude(lng.toFixed(6));
+                  }}
+                />
+              </div>
+
+              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                {isLoading ? "Lagrer..." : "Lagre event"}
+              </Button>
+            </form>
+
+            {message && (
+              <div className={`mt-6 p-4 rounded-md ${message.includes("Feil") || message.includes("Kunne ikke")
+                ? "bg-red-50 text-red-800 border border-red-200"
+                : "bg-green-50 text-green-800 border border-green-200"
+                }`}>
+                <p className="text-sm font-medium">{message}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    maxWidth: "600px",
-    margin: "50px auto",
-    padding: "30px",
-    border: "1px solid #ddd",
-    borderRadius: "8px",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-    backgroundColor: "#fff",
-  },
-  heading: {
-    textAlign: "center",
-    color: "#000000ff",
-    marginBottom: "30px",
-    fontSize: "2em",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
-  formGroup: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  label: {
-    marginBottom: "8px",
-    fontWeight: "bold",
-    color: "#000000ff",
-  },
-  input: {
-    padding: "12px",
-    border: "1px solid #ccc",
-    borderRadius: "5px",
-    fontSize: "1em",
-    width: "100%",
-    boxSizing: "border-box", // Inkluderer padding og border i bredden
-    color: "Black",
-  },
-  textarea: {
-    padding: "12px",
-    border: "1px solid #ccc",
-    borderRadius: "5px",
-    fontSize: "1em",
-    width: "100%",
-    boxSizing: "border-box",
-    resize: "vertical", // Lar brukeren endre høyden på tekstboksen
-    color: "Black",
-  },
-  button: {
-    backgroundColor: "#007bff",
-    color: "white",
-    padding: "12px 20px",
-    border: "none",
-    borderRadius: "5px",
-    cursor: "pointer",
-    fontSize: "1.1em",
-    marginTop: "10px",
-    transition: "background-color 0.3s ease",
-  },
-  buttonHover: {
-    backgroundColor: "#0056b3",
-  },
-  message: {
-    marginTop: "20px",
-    textAlign: "center",
-    color: "#007bff",
-    fontWeight: "bold",
-  },
 };
 
 export default CreateEventPage;

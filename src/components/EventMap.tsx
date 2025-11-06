@@ -1,0 +1,160 @@
+"use client";
+
+import { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix for default marker icon in Next.js
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+    iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+// Modern custom event marker with gradient
+const createCustomIcon = (title: string) => {
+    return L.divIcon({
+        className: 'custom-marker',
+        html: `
+            <div style="position: relative;">
+                <div style="
+                    background: linear-gradient(135deg, #b8996f 0%, #a0814d 50%, #8b6f3f 100%);
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50% 50% 50% 0;
+                    transform: rotate(-45deg);
+                    border: 3px solid white;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <span style="
+                        transform: rotate(45deg);
+                        color: white;
+                        font-size: 18px;
+                        font-weight: bold;
+                    "></span>
+                </div>
+                <div style="
+                    position: absolute;
+                    top: -30px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: white;
+                    padding: 4px 8px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    white-space: nowrap;
+                    font-size: 11px;
+                    font-weight: 600;
+                    color: #374151;
+                    max-width: 150px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    border: 1px solid #e5e7eb;
+                ">${title}</div>
+            </div>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40],
+    });
+};
+
+type Event = {
+    event_id: number | string;
+    tittel: string;
+    beskrivelse?: string | null;
+    lokasjon?: string | null;
+    tid?: Date | string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+};
+
+interface EventMapProps {
+    events: Event[];
+    onEventClick?: (eventId: number | string) => void;
+}
+
+function MapUpdater({ events }: { events: Event[] }) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (events.length > 0) {
+            const validEvents = events.filter(e => e.latitude && e.longitude);
+            if (validEvents.length > 0) {
+                const bounds = L.latLngBounds(
+                    validEvents.map(e => [e.latitude!, e.longitude!])
+                );
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
+            }
+        }
+    }, [events, map]);
+
+    return null;
+}
+
+export default function EventMap({ events, onEventClick }: EventMapProps) {
+    const validEvents = events.filter(e => e.latitude && e.longitude);
+    const defaultCenter: [number, number] = [59.9139, 10.7522]; // Oslo, Norway
+
+    return (
+        <div className="w-full h-full rounded-lg overflow-hidden shadow-lg border border-gray-200">
+            <MapContainer
+                center={defaultCenter}
+                zoom={11}
+                style={{ height: "100%", width: "100%", minHeight: "400px" }}
+                className="z-0"
+            >
+                {/* Carto Light theme - free and beautiful */}
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    subdomains="abcd"
+                    maxZoom={20}
+                />
+
+                <MapUpdater events={validEvents} />
+
+                {validEvents.map((event) => (
+                    <Marker
+                        key={String(event.event_id)}
+                        position={[event.latitude!, event.longitude!]}
+                        icon={createCustomIcon(event.tittel)}
+                        eventHandlers={{
+                            click: () => {
+                                if (onEventClick) {
+                                    onEventClick(event.event_id);
+                                }
+                            },
+                        }}
+                    >
+                        <Popup>
+                            <div className="p-2 min-w-[200px]">
+                                <h3 className="font-bold text-base mb-2 text-gray-900">{event.tittel}</h3>
+                                {event.tid && (
+                                    <p className="text-xs text-gray-600 mb-1">
+                                        �️ {new Date(event.tid).toLocaleString('nb-NO', {
+                                            day: 'numeric',
+                                            month: 'short',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </p>
+                                )}
+                                {event.beskrivelse && (
+                                    <p className="text-sm text-gray-700 line-clamp-2">
+                                        {event.beskrivelse}
+                                    </p>
+                                )}
+                            </div>
+                        </Popup>
+                    </Marker>
+                ))}
+            </MapContainer>
+        </div>
+    );
+}

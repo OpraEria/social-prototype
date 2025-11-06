@@ -1,7 +1,9 @@
 import React from "react";
 import Link from "next/link";
-import RouteButton from "@/components/common/RouteButton";
 import { query } from "@/lib/db";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar, MapPin, ArrowLeft, Plus } from "lucide-react";
 
 type EventRow = {
   event_id: number | string;
@@ -16,7 +18,7 @@ async function fetchEvents(): Promise<{ events: EventRow[]; error?: string }> {
   try {
     // Fetch directly from database in server component
     const result = await query(
-      `SELECT event_id, tittel, beskrivelse, lokasjon, tid, host_id
+      `SELECT event_id, tittel, beskrivelse, tid, host_id, breddegrad as latitude, lengdegrad as longitude
        FROM arrangement
        ORDER BY tid DESC
        LIMIT 200`
@@ -45,70 +47,78 @@ export default async function Page() {
   const { events, error } = await fetchEvents();
 
   return (
-    <main style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
-      <h1 style={{ marginBottom: 16 }}>Events</h1>
+    <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Events</h1>
+          <p className="text-muted-foreground">Oppdag spennende arrangementer</p>
+        </div>
 
-      {error ? (
-        <p style={{ color: "red", fontWeight: 500 }}>{error}</p>
-      ) : events.length === 0 ? (
-        <p>Ingen events funnet.</p>
-      ) : (
-        <ul
-          style={{
-            listStyle: "none",
-            padding: 0,
-            margin: 0,
-            display: "grid",
-            gap: 12,
-          }}
-        >
-          {events.map((ev) => (
-            <li
-              key={String(ev.event_id)}
-              style={{
-                border: "1px solid #e6e6e6",
-                borderRadius: 8,
-                padding: 12,
-                transition: "box-shadow 0.15s",
-              }}
-            >
+        {error ? (
+          <Card className="border-destructive">
+            <CardContent className="pt-6">
+              <p className="text-destructive font-medium">{error}</p>
+            </CardContent>
+          </Card>
+        ) : events.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground">Ingen events funnet.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 mb-8">
+            {events.map((ev) => (
               <Link
+                key={String(ev.event_id)}
                 href={`/event/${ev.event_id}`}
-                style={{
-                  textDecoration: "none",
-                  color: "inherit",
-                  display: "block",
-                }}
+                className="block transition-transform hover:scale-[1.02]"
               >
-                <div
-                  style={{ display: "flex", justifyContent: "space-between" }}
-                >
-                  <h2 style={{ margin: 0, fontSize: 18 }}>{ev.tittel}</h2>
-                  <time style={{ color: "#666", fontSize: 13 }}>
-                    {formatDate(ev.tid)}
-                  </time>
-                </div>
-                {ev.lokasjon && (
-                  <p style={{ marginTop: 4, color: "#666", fontSize: 14 }}>
-                    📍 {ev.lokasjon}
-                  </p>
-                )}
-                {ev.beskrivelse ? (
-                  <p style={{ marginTop: 8, color: "#333" }}>
-                    {ev.beskrivelse.length > 200
-                      ? ev.beskrivelse.slice(0, 200) + "…"
-                      : ev.beskrivelse}
-                  </p>
-                ) : null}
+                <Card className="overflow-hidden hover:shadow-lg transition-all">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 pb-4">
+                    <div className="flex justify-between items-start gap-4">
+                      <CardTitle className="text-xl">{ev.tittel}</CardTitle>
+                      <time className="text-sm text-muted-foreground whitespace-nowrap flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        {formatDate(ev.tid)}
+                      </time>
+                    </div>
+                    {ev.lokasjon && (
+                      <CardDescription className="flex items-center gap-1 mt-2">
+                        <MapPin className="h-4 w-4" />
+                        {ev.lokasjon}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  {ev.beskrivelse && (
+                    <CardContent className="pt-4">
+                      <p className="text-gray-700 line-clamp-2">
+                        {ev.beskrivelse.length > 200
+                          ? ev.beskrivelse.slice(0, 200) + "…"
+                          : ev.beskrivelse}
+                      </p>
+                    </CardContent>
+                  )}
+                </Card>
               </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+            ))}
+          </div>
+        )}
 
-      <div style={{ marginTop: 24, display: "flex", gap: 12 }}>
-        <RouteButton label="Opprett nytt event" to="/eventcreation" />
-        <RouteButton label="Gå tilbake" to="/" />
+        <div className="flex flex-wrap gap-3">
+          <Link href="/eventcreation">
+            <Button className="gap-2">
+              <Plus className="h-4 w-4" />
+              Opprett nytt event
+            </Button>
+          </Link>
+          <Link href="/">
+            <Button variant="outline" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Gå tilbake
+            </Button>
+          </Link>
+        </div>
       </div>
     </main>
   );
