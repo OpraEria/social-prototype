@@ -57,7 +57,8 @@ export async function POST(req: Request) {
       badge: '/icon-192x192.png',
       url: eventId ? `/event/${eventId}` : '/',
       eventId,
-      tag: 'event-notification'
+      tag: 'event-notification',
+      timestamp: Date.now() // Add timestamp to help with uniqueness
     };
 
     // Send notifications to all subscribers

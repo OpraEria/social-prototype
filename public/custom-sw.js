@@ -7,12 +7,19 @@ self.addEventListener("push", function (event) {
       const data = event.data.json();
       console.log("Parsed notification data:", data);
 
+      // Generate unique tag to prevent Chrome from collapsing notifications
+      const uniqueTag = data.tag
+        ? `${data.tag}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        : `notification-${Date.now()}`;
+
       const options = {
         body: data.body || "Nytt event publisert!",
         icon: "/icon-192x192.png",
         badge: "/icon-192x192.png",
         vibrate: [200, 100, 200],
-        tag: data.tag || "event-notification",
+        tag: uniqueTag,
+        requireInteraction: false, // Allow auto-dismiss
+        renotify: true, // Force notification even if tag exists
         data: {
           url: data.url || "/",
           eventId: data.eventId,
@@ -23,11 +30,22 @@ self.addEventListener("push", function (event) {
 
       event.waitUntil(
         self.registration.showNotification(data.title || "Gather", options)
-          .then(() => {
-            console.log("✅ Notification shown successfully!");
+          .then((result) => {
+            console.log("✅ Notification shown successfully!", result);
+            console.log("Notification permission:", Notification.permission);
+            return self.registration.getNotifications();
+          })
+          .then((notifications) => {
+            console.log("Active notifications count:", notifications.length);
+            console.log("Active notifications:", notifications);
           })
           .catch((error) => {
             console.error("❌ Failed to show notification:", error);
+            console.error("Error details:", {
+              name: error.name,
+              message: error.message,
+              stack: error.stack
+            });
           })
       );
     } catch (error) {
