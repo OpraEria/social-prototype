@@ -1,0 +1,62 @@
+import { AuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { getUserByUsername } from "@/lib/db";
+
+export const authOptions: AuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        username: { label: "Username", type: "text" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.username || !credentials?.password) {
+          return null;
+        }
+
+        const user = await getUserByUsername(credentials.username);
+
+        if (!user) {
+          return null;
+        }
+
+        // Direct password comparison since passwords are stored as plain text in the example
+        const isPasswordValid = credentials.password === user.passord;
+
+        if (!isPasswordValid) {
+          return null;
+        }
+
+        return {
+          id: user.bruker_id.toString(),
+          name: user.navn,
+          gruppeId: user.gruppe_id,
+        };
+      }
+    }),
+  ],
+  session: {
+    strategy: "jwt",
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.gruppeId = user.gruppeId;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.gruppeId = token.gruppeId as number;
+      }
+      return session;
+    },
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+  pages: {
+    signIn: "/login",
+  },
+};

@@ -18,13 +18,14 @@ export const metadata: Metadata = {
     maximumScale: 1,
     userScalable: false,
   },
-  themeColor: "#3b82f6",
+  themeColor: "#fafafa",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Sosial App",
-  },
+  }
+
 };
 
 export default function RootLayout({
@@ -34,6 +35,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="no">
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Sosial App" />
+        <meta name="theme-color" content="#fafafa" />
+      </head>
       <body
         className={`${inter.variable} font-sans antialiased grain-background text-foreground min-h-screen`}
       >

@@ -16,7 +16,7 @@ export async function DELETE(req: Request) {}
 import pool from "../../../../db.js";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
