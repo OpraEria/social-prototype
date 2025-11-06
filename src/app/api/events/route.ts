@@ -51,7 +51,28 @@ export async function POST(req: Request) {
       "INSERT INTO arrangement (tittel, beskrivelse, tid, host_id, breddegrad, lengdegrad) VALUES ($1, $2, $3, $4, $5, $6) RETURNING event_id, tittel, beskrivelse, tid, host_id, breddegrad as latitude, lengdegrad as longitude",
       [tittel, beskrivelse, tid, host_id, latitude || null, longitude || null]
     );
-    return NextResponse.json(result.rows[0]);
+    
+    const newEvent = result.rows[0];
+    
+    // Send push notification to users in the same group
+    try {
+      await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/notifications/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: 'Nytt event!',
+          body: `${tittel} - Sjekk det ut!`,
+          eventId: newEvent.event_id
+        })
+      });
+    } catch (notifErr) {
+      // Don't fail event creation if notification fails
+      console.error('Failed to send notification:', notifErr);
+    }
+    
+    return NextResponse.json(newEvent);
   } catch (err: any) {
     console.error("Failed to add event:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });

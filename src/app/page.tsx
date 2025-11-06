@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, MapPin, List, Map as MapIcon, Users as UsersIcon, Plus, UserPlus } from "lucide-react";
+import { Calendar, MapPin, List, Map as MapIcon, Users as UsersIcon, Plus, UserPlus, Trash2 } from "lucide-react";
 
 // Dynamic import for map to avoid SSR issues with Leaflet
 const EventMap = dynamic(() => import("@/components/EventMap"), {
@@ -39,6 +39,11 @@ type User = {
   gruppe_id: number;
 };
 
+type Participant = {
+  bruker_id: number;
+  navn: string;
+};
+
 function formatDate(d?: string | Date | null) {
   if (!d) return "Ukjent dato";
   const date = typeof d === "string" ? new Date(d) : d;
@@ -61,6 +66,9 @@ export default function Home() {
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
+  // Participants state - map of event_id to array of participants
+  const [participants, setParticipants] = useState<Map<number | string, Participant[]>>(new Map());
+
   // User management states
   const [users, setUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
@@ -76,6 +84,34 @@ export default function Home() {
     }
   }, [status, router]);
 
+  // Request notification permission when user is authenticated
+  useEffect(() => {
+    const setupNotifications = async () => {
+      if (status === "authenticated" && session?.user?.id) {
+        // Dynamically import to avoid SSR issues
+        const { subscribeToPushNotifications, checkNotificationPermission } = await import('@/lib/notifications');
+
+        const permission = checkNotificationPermission();
+
+        // Only prompt if not already decided
+        if (permission === 'default') {
+          // Small delay to not overwhelm user on login
+          setTimeout(async () => {
+            const confirmed = confirm('Vil du motta varsler når nye events blir publisert?');
+            if (confirmed) {
+              await subscribeToPushNotifications(session.user.id);
+            }
+          }, 1000);
+        } else if (permission === 'granted') {
+          // Re-subscribe in case subscription expired
+          await subscribeToPushNotifications(session.user.id);
+        }
+      }
+    };
+
+    setupNotifications();
+  }, [status, session]);
+
   // Fetch events on mount
   useEffect(() => {
     async function fetchEvents() {
@@ -87,7 +123,16 @@ export default function Home() {
           throw new Error("Failed to fetch events");
         }
         const data = await res.json();
-        setEvents(data);
+        // Sort events by date (most recent first)
+        const sortedData = data.sort((a: Event, b: Event) => {
+          const dateA = a.tid ? new Date(a.tid).getTime() : 0;
+          const dateB = b.tid ? new Date(b.tid).getTime() : 0;
+          return dateA - dateB; // Ascending order (soonest events first)
+        });
+        setEvents(sortedData);
+
+        // Fetch participants for all events
+        fetchAllParticipants(sortedData);
       } catch (err: any) {
         console.error("Failed to fetch events", err);
         setEventsError(err.message || "Failed to load events");
@@ -100,6 +145,31 @@ export default function Home() {
       fetchUsers(); // Fetch users on page load to show host names
     }
   }, [status]);
+
+  // Fetch participants for all events
+  const fetchAllParticipants = async (eventsList: Event[]) => {
+    try {
+      const participantsMap = new Map<number | string, Participant[]>();
+
+      await Promise.all(
+        eventsList.map(async (event) => {
+          try {
+            const res = await fetch(`/api/events/${event.event_id}/participants`);
+            if (res.ok) {
+              const data = await res.json();
+              participantsMap.set(event.event_id, data);
+            }
+          } catch (err) {
+            console.error(`Failed to fetch participants for event ${event.event_id}`, err);
+          }
+        })
+      );
+
+      setParticipants(participantsMap);
+    } catch (err) {
+      console.error("Failed to fetch participants", err);
+    }
+  };
 
   // Fetch users when dialog opens
   const fetchUsers = async () => {
@@ -138,6 +208,61 @@ export default function Home() {
       setGruppeId("");
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // Delete an event
+  const deleteEvent = async (eventId: number | string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!confirm("Er du sikker på at du vil slette dette eventet?")) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete event");
+
+      // Remove event from local state
+      setEvents(events.filter(event => event.event_id !== eventId));
+    } catch (err) {
+      console.error("Failed to delete event:", err);
+      alert("Kunne ikke slette event");
+    }
+  };
+
+  // Join an event
+  const joinEvent = async (eventId: number | string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      const res = await fetch(`/api/events/${eventId}/join`, {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        if (error.error.includes("already participating")) {
+          alert("Du deltar allerede i dette eventet");
+        } else {
+          throw new Error(error.error);
+        }
+        return;
+      }
+
+      // Refresh participants for this event
+      const participantsRes = await fetch(`/api/events/${eventId}/participants`);
+      if (participantsRes.ok) {
+        const data = await participantsRes.json();
+        setParticipants(new Map(participants.set(eventId, data)));
+      }
+    } catch (err) {
+      console.error("Failed to join event:", err);
+      alert("Kunne ikke bli med i eventet");
     }
   };
 
@@ -388,14 +513,62 @@ export default function Home() {
                           </p>
                         )}
 
-                        {host && (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <UsersIcon className="h-3.5 w-3.5 text-primary" />
-                              <span>Arrangert av {host.navn}</span>
-                            </div>
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {host && (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <UsersIcon className="h-3.5 w-3.5 text-primary" />
+                                  <span>Arrangert av {host.navn}</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Participants avatars */}
+                            {participants.get(event.event_id) && participants.get(event.event_id)!.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                <div className="flex -space-x-2">
+                                  {participants.get(event.event_id)!.slice(0, 5).map((participant) => (
+                                    <div
+                                      key={participant.bruker_id}
+                                      className="w-7 h-7 rounded-full bg-gradient-to-br from-[#b8996f] to-[#8b6f3f] border-2 border-white flex items-center justify-center text-white text-xs font-semibold shadow-sm"
+                                      title={participant.navn}
+                                    >
+                                      {participant.navn.charAt(0).toUpperCase()}
+                                    </div>
+                                  ))}
+                                  {participants.get(event.event_id)!.length > 5 && (
+                                    <div className="w-7 h-7 rounded-full bg-gray-300 border-2 border-white flex items-center justify-center text-gray-700 text-xs font-semibold shadow-sm">
+                                      +{participants.get(event.event_id)!.length - 5}
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  {participants.get(event.event_id)!.length} deltar
+                                </span>
+                              </div>
+                            )}
                           </div>
-                        )}
+
+                          <div className="flex items-center gap-2">
+                            {session?.user?.gruppeId === 1 && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => deleteEvent(event.event_id, e)}
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              onClick={(e) => joinEvent(event.event_id, e)}
+                            >
+                              Bli med
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </Card>

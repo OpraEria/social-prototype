@@ -131,7 +131,8 @@ export default function EventMap({ events, onEventClick }: EventMapProps) {
                                 }
                             },
                         }}
-                    />
+                    >
+                    </Marker>
                 ))}
             </MapContainer>
         </div>

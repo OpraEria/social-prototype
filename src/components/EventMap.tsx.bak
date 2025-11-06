@@ -131,7 +131,28 @@ export default function EventMap({ events, onEventClick }: EventMapProps) {
                                 }
                             },
                         }}
-                    />
+                    >
+                        <Popup>
+                            <div className="p-2 min-w-[200px]">
+                                <h3 className="font-bold text-base mb-2 text-gray-900">{event.tittel}</h3>
+                                {event.tid && (
+                                    <p className="text-xs text-gray-600 mb-1">
+                                        �️ {new Date(event.tid).toLocaleString('nb-NO', {
+                                            day: 'numeric',
+                                            month: 'short',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </p>
+                                )}
+                                {event.beskrivelse && (
+                                    <p className="text-sm text-gray-700 line-clamp-2">
+                                        {event.beskrivelse}
+                                    </p>
+                                )}
+                            </div>
+                        </Popup>
+                    </Marker>
                 ))}
             </MapContainer>
         </div>

@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+
+// Define world bounds to prevent infinite scrolling
+const WORLD_BOUNDS = L.latLngBounds(
+    L.latLng(-90, -180), // Southwest coordinates
+    L.latLng(90, 180)    // Northeast coordinates
+);
 
 // Custom draggable pin icon with brown gradient theme
 const customIcon = L.divIcon({
@@ -69,11 +75,23 @@ function DraggableMarker({ position, onDragEnd }: {
 }
 
 function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
+    const map = useMap();
+
     useMapEvents({
         click(e) {
-            onMapClick(e.latlng.lat, e.latlng.lng);
+            // Check if click is within bounds
+            if (WORLD_BOUNDS.contains(e.latlng)) {
+                onMapClick(e.latlng.lat, e.latlng.lng);
+            }
         },
     });
+
+    // Set map bounds on mount
+    useEffect(() => {
+        map.setMaxBounds(WORLD_BOUNDS);
+        map.setMinZoom(2);
+    }, [map]);
+
     return null;
 }
 
@@ -89,8 +107,12 @@ export default function LocationPicker({ latitude, longitude, onLocationChange }
     }, [latitude, longitude]);
 
     const handleLocationChange = (lat: number, lng: number) => {
-        setPosition([lat, lng]);
-        onLocationChange(lat, lng);
+        // Clamp coordinates within world bounds
+        const clampedLat = Math.max(-90, Math.min(90, lat));
+        const clampedLng = Math.max(-180, Math.min(180, lng));
+
+        setPosition([clampedLat, clampedLng]);
+        onLocationChange(clampedLat, clampedLng);
     };
 
     return (
@@ -100,6 +122,9 @@ export default function LocationPicker({ latitude, longitude, onLocationChange }
                 zoom={13}
                 style={{ height: "100%", width: "100%" }}
                 className="z-0"
+                maxBounds={WORLD_BOUNDS}
+                maxBoundsViscosity={1.0}
+                minZoom={2}
             >
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'

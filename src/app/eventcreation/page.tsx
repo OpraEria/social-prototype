@@ -184,49 +184,14 @@ const CreateEventPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="latitude" className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Latitude
-                  </label>
-                  <Input
-                    type="number"
-                    step="any"
-                    id="latitude"
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                    disabled={isLoading}
-                    placeholder="59.9139"
-                    className="text-base"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="longitude" className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Longitude
-                  </label>
-                  <Input
-                    type="number"
-                    step="any"
-                    id="longitude"
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                    disabled={isLoading}
-                    placeholder="10.7522"
-                    className="text-base"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
                   Velg lokasjon på kartet
                 </label>
-                {/* <p className="text-xs text-muted-foreground mb-3">
+                <p className="text-xs text-muted-foreground">
                   Klikk på kartet eller dra på markøren for å velge lokasjon
-                </p> */}
+                </p>
                 <LocationPicker
                   latitude={latitude}
                   longitude={longitude}
